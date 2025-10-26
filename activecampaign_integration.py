@@ -20,19 +20,20 @@ logger = logging.getLogger(__name__)
 AC_URL = "https://organicknm.api-us1.com"
 AC_API_KEY = "2bf8c04b1bb5eb77e3aa39e10be70eb7fd8d20e2679787fe6ff153bd112a089939a06220"
 
-# Mapeamento de campos personalizados do ActiveCampaign para as perguntas do sistema
-FIELD_MAPPING = {
-    'cartao': '%POSSUI_CARTAO_DE_CREDITO%',
-    'rendaMkt': '%RENDA_DO_MKT_DIGITAL%',
-    'rendaExtra': '%RENDA_ALM_DO_MKT%',
-    'tempoArea': '%TEMPO_DE_ATUAO_NA_REA%',
-    'clientes': '%QUANTOS_CLIENTES_POSSUI%',
-    'status': '%ESTGIO_PROFISSIONAL%',
-    'comprouCurso': '%JA_COMPROU_CURSO_OU_MENTORIA%',
-    'investimento': '%QUANTO_JA_INVESTIU_EM_EDUCACAO%',
-    'conheceNick': '%COMO_FICOU_SABENDO_DO_PROGRAMA%',
-    'objetivo': '%OBJETIVOS_COM_O_PO%',
-    'comprometimento': '%VAI_DEDICAR_1H_POR_DIA%'
+# Mapeamento de IDs de campos do ActiveCampaign
+# Você precisa preencher os IDs que faltam no ActiveCampaign
+FIELD_ID_MAPPING = {
+    'cartao': None,  # PRECISA CRIAR NO AC
+    'rendaMkt': '16',  # RENDA_DO_MKT_DIGITAL
+    'rendaExtra': '17',  # RENDA_ALM_DO_MKT
+    'tempoArea': '13',  # TEMPO_DE_ATUAO_NA_REA
+    'clientes': '15',  # QUANTOS_CLIENTES_POSSUI
+    'status': '12',  # ESTGIO_PROFISSIONAL
+    'comprouCurso': '24',  # J_PARTICIPOU_DE_UM_CURSO_QUE_NO_ATENDEU_S_EXPECTATIVAS
+    'investimento': None,  # PRECISA CRIAR NO AC
+    'conheceNick': '41',  # TEMPO_QUE_CONHECE_O_NICK
+    'objetivo': '11',  # OBJETIVOS_COM_O_PO
+    'comprometimento': '22'  # VAI_DEDICAR_1H_POR_DIA
 }
 
 # Sistema de pontuação (idêntico ao sistema HTML)
@@ -147,13 +148,18 @@ def calcular_pontuacao(campos_contato):
     pontuacao_total = 0
     detalhes = []
     
-    for pergunta_id, campo_ac in FIELD_MAPPING.items():
-        resposta = campos_contato.get(campo_ac, '')
+    for pergunta_id, field_id in FIELD_ID_MAPPING.items():
+        if field_id is None:
+            logger.warning(f"Campo {pergunta_id} não mapeado no ActiveCampaign")
+            continue
+            
+        resposta = campos_contato.get(field_id, '')
         pontos = encontrar_pontos(pergunta_id, resposta)
         pontuacao_total += pontos
         
         detalhes.append({
             'pergunta': pergunta_id,
+            'field_id': field_id,
             'resposta': resposta,
             'pontos': pontos
         })
@@ -211,61 +217,78 @@ def atualizar_contato_ac(contact_id, pontuacao, classificacao):
         'Content-Type': 'application/json'
     }
     
-    # 1. Atualizar campo personalizado de pontuação
-    url_field = f"{AC_URL}/api/3/contacts/{contact_id}"
-    data_field = {
-        "contact": {
-            "fieldValues": [
-                {
-                    "field": "PONTUACAO_QUALIFICACAO_PO",  # Nome do campo no AC
-                    "value": str(pontuacao)
-                }
-            ]
+    # IDs dos campos que vamos atualizar
+    FIELD_PONTUACAO_ID = '47'  # PONTUAO_QUALIFICACAO
+    FIELD_STATUS_ID = '46'  # STATUS_QUALIFICAO_LEAD
+    
+    # 1. Atualizar campos personalizados (pontuação e status)
+    url_field = f"{AC_URL}/api/3/fieldValues"
+    
+    # Atualizar pontuação
+    data_pontuacao = {
+        "fieldValue": {
+            "contact": contact_id,
+            "field": FIELD_PONTUACAO_ID,
+            "value": str(pontuacao)
         }
     }
     
     try:
-        response = requests.put(url_field, headers=headers, json=data_field)
+        response = requests.post(url_field, headers=headers, json=data_pontuacao)
         response.raise_for_status()
-        logger.info(f"Campo atualizado para contato {contact_id}: {pontuacao} pontos")
+        logger.info(f"✅ Pontuação atualizada: {pontuacao} pontos")
     except Exception as e:
-        logger.error(f"Erro ao atualizar campo: {e}")
+        logger.error(f"❌ Erro ao atualizar pontuação: {e}")
+    
+    # Atualizar status
+    data_status = {
+        "fieldValue": {
+            "contact": contact_id,
+            "field": FIELD_STATUS_ID,
+            "value": classificacao['status']
+        }
+    }
+    
+    try:
+        response = requests.post(url_field, headers=headers, json=data_status)
+        response.raise_for_status()
+        logger.info(f"✅ Status atualizado: {classificacao['status']}")
+    except Exception as e:
+        logger.error(f"❌ Erro ao atualizar status: {e}")
     
     # 2. Adicionar tag de classificação
-    url_tag = f"{AC_URL}/api/3/contactTags"
+    # Primeiro, buscar ou criar a tag
+    url_tags = f"{AC_URL}/api/3/tags"
+    data_create_tag = {
+        "tag": {
+            "tag": classificacao['tag'],
+            "tagType": "contact"
+        }
+    }
+    
+    try:
+        response = requests.post(url_tags, headers=headers, json=data_create_tag)
+        # Ignora se já existe (409)
+        if response.status_code not in [200, 201, 409, 422]:
+            logger.warning(f"⚠️ Aviso ao criar tag: {response.status_code}")
+    except Exception as e:
+        logger.warning(f"⚠️ Aviso ao criar tag: {e}")
+    
+    # Agora adicionar a tag ao contato
+    url_contact_tag = f"{AC_URL}/api/3/contactTags"
     data_tag = {
         "contactTag": {
-            "contact": contact_id,
+            "contact": str(contact_id),
             "tag": classificacao['tag']
         }
     }
     
     try:
-        response = requests.post(url_tag, headers=headers, json=data_tag)
+        response = requests.post(url_contact_tag, headers=headers, json=data_tag)
         response.raise_for_status()
-        logger.info(f"Tag adicionada para contato {contact_id}: {classificacao['tag']}")
+        logger.info(f"✅ Tag adicionada: {classificacao['tag']}")
     except Exception as e:
-        logger.error(f"Erro ao adicionar tag: {e}")
-    
-    # 3. Atualizar campo de status
-    url_status = f"{AC_URL}/api/3/contacts/{contact_id}"
-    data_status = {
-        "contact": {
-            "fieldValues": [
-                {
-                    "field": "STATUS_QUALIFICAO_LEAD",  # Campo do AC
-                    "value": classificacao['status']
-                }
-            ]
-        }
-    }
-    
-    try:
-        response = requests.put(url_status, headers=headers, json=data_status)
-        response.raise_for_status()
-        logger.info(f"Status atualizado para contato {contact_id}: {classificacao['status']}")
-    except Exception as e:
-        logger.error(f"Erro ao atualizar status: {e}")
+        logger.error(f"❌ Erro ao adicionar tag: {e} - Response: {response.text if 'response' in locals() else 'N/A'}")
 
 
 @app.route('/webhook/activecampaign', methods=['POST'])
