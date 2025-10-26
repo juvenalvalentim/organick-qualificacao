@@ -196,7 +196,9 @@ def buscar_contato_ac(contact_id):
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        logger.info(f"Dados recebidos do AC: {data}")
+        return data
     except Exception as e:
         logger.error(f"Erro ao buscar contato: {e}")
         return None
@@ -285,10 +287,24 @@ def webhook_activecampaign():
         if not contato_dados:
             return jsonify({'error': 'Não foi possível buscar dados do contato'}), 500
         
-        # Extrair campos personalizados
+        # Extrair campos personalizados com validação
         campos_contato = {}
-        for field in contato_dados.get('contact', {}).get('fieldValues', []):
-            campos_contato[field.get('field')] = field.get('value')
+        
+        if isinstance(contato_dados, dict):
+            contact_data = contato_dados.get('contact', contato_dados)
+            
+            if isinstance(contact_data, dict):
+                field_values = contact_data.get('fieldValues', [])
+                
+                if isinstance(field_values, list):
+                    for field in field_values:
+                        if isinstance(field, dict):
+                            field_id = field.get('field')
+                            field_value = field.get('value')
+                            if field_id:
+                                campos_contato[field_id] = field_value
+        
+        logger.info(f"Campos extraídos: {campos_contato}")
         
         # Calcular pontuação
         pontuacao_total, detalhes = calcular_pontuacao(campos_contato)
@@ -312,6 +328,8 @@ def webhook_activecampaign():
         
     except Exception as e:
         logger.error(f"Erro no webhook: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 
@@ -331,10 +349,28 @@ def test_contact(contact_id):
         if not contato_dados:
             return jsonify({'error': 'Contato não encontrado'}), 404
         
-        # Extrair campos
+        logger.info(f"Tipo de contato_dados: {type(contato_dados)}")
+        logger.info(f"Conteúdo: {contato_dados}")
+        
+        # Extrair campos - com validação de tipo
         campos_contato = {}
-        for field in contato_dados.get('contact', {}).get('fieldValues', []):
-            campos_contato[field.get('field')] = field.get('value')
+        
+        # Verificar se é um dict e se tem a chave 'contact'
+        if isinstance(contato_dados, dict):
+            contact_data = contato_dados.get('contact', contato_dados)
+            
+            if isinstance(contact_data, dict):
+                field_values = contact_data.get('fieldValues', [])
+                
+                if isinstance(field_values, list):
+                    for field in field_values:
+                        if isinstance(field, dict):
+                            field_id = field.get('field')
+                            field_value = field.get('value')
+                            if field_id:
+                                campos_contato[field_id] = field_value
+        
+        logger.info(f"Campos extraídos: {campos_contato}")
         
         # Calcular
         pontuacao_total, detalhes = calcular_pontuacao(campos_contato)
@@ -349,10 +385,14 @@ def test_contact(contact_id):
             'pontuacao': pontuacao_total,
             'classificacao': classificacao['status'],
             'tag': classificacao['tag'],
+            'campos_encontrados': len(campos_contato),
             'detalhes': detalhes
         }), 200
         
     except Exception as e:
+        logger.error(f"Erro completo: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 
