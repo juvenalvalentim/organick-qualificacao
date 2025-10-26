@@ -288,7 +288,8 @@ def atualizar_contato_ac(contact_id, pontuacao, classificacao):
         response.raise_for_status()
         logger.info(f"✅ Tag adicionada: {classificacao['tag']}")
     except Exception as e:
-        logger.error(f"❌ Erro ao adicionar tag: {e} - Response: {response.text if 'response' in locals() else 'N/A'}")
+        response_text = response.text if 'response' in locals() and hasattr(response, 'text') else 'N/A'
+        logger.error(f"❌ Erro ao adicionar tag: {e} - Response: {response_text}")
 
 
 @app.route('/webhook/activecampaign', methods=['POST'])
