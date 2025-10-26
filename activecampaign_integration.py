@@ -464,33 +464,27 @@ def test_contact(contact_id):
         
         # Agora processar
         if isinstance(contato_dados, dict):
-            logger.info("STEP 6 - É dict! Procurando chave 'contact'...")
-            logger.info(f"STEP 7 - Keys disponíveis: {contato_dados.keys()}")
+            logger.info("STEP 6 - É dict! Procurando fieldValues...")
+            logger.info(f"STEP 7 - Keys disponíveis na raiz: {contato_dados.keys()}")
             
-            contact_data = contato_dados.get('contact', contato_dados)
-            logger.info(f"STEP 8 - Tipo de contact_data: {type(contact_data)}")
+            # CORREÇÃO: fieldValues está na RAIZ, não dentro de 'contact'!
+            field_values = contato_dados.get('fieldValues', [])
+            logger.info(f"STEP 8 - Tipo de field_values: {type(field_values)}")
+            logger.info(f"STEP 9 - Quantidade de fields: {len(field_values) if isinstance(field_values, list) else 'N/A'}")
             
-            if isinstance(contact_data, dict):
-                logger.info("STEP 9 - contact_data é dict!")
-                logger.info(f"STEP 10 - Keys em contact_data: {contact_data.keys()}")
-                
-                field_values = contact_data.get('fieldValues', [])
-                logger.info(f"STEP 11 - Tipo de field_values: {type(field_values)}")
-                logger.info(f"STEP 12 - Quantidade de fields: {len(field_values) if isinstance(field_values, list) else 'N/A'}")
-                
-                if isinstance(field_values, list):
-                    for idx, field in enumerate(field_values):
-                        logger.info(f"STEP 13.{idx} - Field tipo: {type(field)}")
-                        if isinstance(field, dict):
-                            field_id = field.get('field')
-                            field_value = field.get('value')
-                            logger.info(f"STEP 14.{idx} - Field ID: {field_id}, Value: {field_value}")
-                            if field_id:
-                                campos_contato[field_id] = field_value
-                else:
-                    logger.error("STEP 11 - field_values NÃO é lista!")
+            if isinstance(field_values, list):
+                for idx, field in enumerate(field_values):
+                    logger.info(f"STEP 10.{idx} - Field tipo: {type(field)}")
+                    if isinstance(field, dict):
+                        field_id = field.get('field')
+                        field_value = field.get('value')
+                        logger.info(f"STEP 11.{idx} - Field ID: {field_id}, Value: {field_value}")
+                        if field_id:
+                            campos_contato[field_id] = field_value
+                    else:
+                        logger.warning(f"STEP 10.{idx} - Field é string (ID): {field}")
             else:
-                logger.error("STEP 9 - contact_data NÃO é dict!")
+                logger.error("STEP 9 - field_values NÃO é lista!")
         else:
             logger.error(f"STEP 6 - contato_dados NÃO é dict! É: {type(contato_dados)}")
         
