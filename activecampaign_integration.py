@@ -343,38 +343,73 @@ def health():
 def test_contact(contact_id):
     """Endpoint de teste para processar um contato específico"""
     try:
+        logger.info(f"===== INICIANDO TESTE PARA CONTATO {contact_id} =====")
+        
         # Buscar dados do contato
         contato_dados = buscar_contato_ac(contact_id)
+        
+        logger.info(f"STEP 1 - Tipo retornado: {type(contato_dados)}")
+        logger.info(f"STEP 2 - É None? {contato_dados is None}")
         
         if not contato_dados:
             return jsonify({'error': 'Contato não encontrado'}), 404
         
-        logger.info(f"Tipo de contato_dados: {type(contato_dados)}")
-        logger.info(f"Conteúdo: {contato_dados}")
+        logger.info(f"STEP 3 - Conteúdo completo: {contato_dados}")
         
-        # Extrair campos - com validação de tipo
+        # Extrair campos - com MUITA validação
         campos_contato = {}
         
-        # Verificar se é um dict e se tem a chave 'contact'
+        # Se for string, converter para dict
+        if isinstance(contato_dados, str):
+            logger.info("STEP 4 - É string! Tentando converter para JSON...")
+            import json
+            try:
+                contato_dados = json.loads(contato_dados)
+                logger.info(f"STEP 5 - Convertido com sucesso: {type(contato_dados)}")
+            except:
+                logger.error("STEP 5 - Falha ao converter string para JSON")
+                return jsonify({'error': 'Resposta da API é inválida (string não JSON)'}), 500
+        
+        # Agora processar
         if isinstance(contato_dados, dict):
+            logger.info("STEP 6 - É dict! Procurando chave 'contact'...")
+            logger.info(f"STEP 7 - Keys disponíveis: {contato_dados.keys()}")
+            
             contact_data = contato_dados.get('contact', contato_dados)
+            logger.info(f"STEP 8 - Tipo de contact_data: {type(contact_data)}")
             
             if isinstance(contact_data, dict):
+                logger.info("STEP 9 - contact_data é dict!")
+                logger.info(f"STEP 10 - Keys em contact_data: {contact_data.keys()}")
+                
                 field_values = contact_data.get('fieldValues', [])
+                logger.info(f"STEP 11 - Tipo de field_values: {type(field_values)}")
+                logger.info(f"STEP 12 - Quantidade de fields: {len(field_values) if isinstance(field_values, list) else 'N/A'}")
                 
                 if isinstance(field_values, list):
-                    for field in field_values:
+                    for idx, field in enumerate(field_values):
+                        logger.info(f"STEP 13.{idx} - Field tipo: {type(field)}")
                         if isinstance(field, dict):
                             field_id = field.get('field')
                             field_value = field.get('value')
+                            logger.info(f"STEP 14.{idx} - Field ID: {field_id}, Value: {field_value}")
                             if field_id:
                                 campos_contato[field_id] = field_value
+                else:
+                    logger.error("STEP 11 - field_values NÃO é lista!")
+            else:
+                logger.error("STEP 9 - contact_data NÃO é dict!")
+        else:
+            logger.error(f"STEP 6 - contato_dados NÃO é dict! É: {type(contato_dados)}")
         
-        logger.info(f"Campos extraídos: {campos_contato}")
+        logger.info(f"STEP 15 - Campos extraídos FINAL: {campos_contato}")
+        logger.info(f"STEP 16 - Total de campos: {len(campos_contato)}")
         
         # Calcular
         pontuacao_total, detalhes = calcular_pontuacao(campos_contato)
         classificacao = obter_classificacao(pontuacao_total)
+        
+        logger.info(f"STEP 17 - Pontuação calculada: {pontuacao_total}")
         
         # Atualizar
         atualizar_contato_ac(contact_id, pontuacao_total, classificacao)
@@ -386,14 +421,18 @@ def test_contact(contact_id):
             'classificacao': classificacao['status'],
             'tag': classificacao['tag'],
             'campos_encontrados': len(campos_contato),
+            'campos': list(campos_contato.keys()),
             'detalhes': detalhes
         }), 200
         
     except Exception as e:
-        logger.error(f"Erro completo: {str(e)}")
+        logger.error(f"❌ ERRO COMPLETO: {str(e)}")
         import traceback
         logger.error(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 
 if __name__ == '__main__':
