@@ -21,16 +21,15 @@ AC_URL = "https://organicknm.api-us1.com"
 AC_API_KEY = "2bf8c04b1bb5eb77e3aa39e10be70eb7fd8d20e2679787fe6ff153bd112a089939a06220"
 
 # Mapeamento de IDs de campos do ActiveCampaign
-# Você precisa preencher os IDs que faltam no ActiveCampaign
 FIELD_ID_MAPPING = {
-    'cartao': None,  # PRECISA CRIAR NO AC
+    'cartao': '48',  # POSSUI_CARTO_DE_CRDITO_CONTATO
     'rendaMkt': '16',  # RENDA_DO_MKT_DIGITAL
     'rendaExtra': '17',  # RENDA_ALM_DO_MKT
     'tempoArea': '13',  # TEMPO_DE_ATUAO_NA_REA
     'clientes': '15',  # QUANTOS_CLIENTES_POSSUI
     'status': '12',  # ESTGIO_PROFISSIONAL
-    'comprouCurso': '24',  # J_PARTICIPOU_DE_UM_CURSO_QUE_NO_ATENDEU_S_EXPECTATIVAS
-    'investimento': None,  # PRECISA CRIAR NO AC
+    'comprouCurso': '50',  # J_COMPROU_CURSO_CONTATO
+    'investimento': '49',  # QUANTO_J_INVESTIU_EM_EDUCAO_CONTATO
     'conheceNick': '41',  # TEMPO_QUE_CONHECE_O_NICK
     'objetivo': '11',  # OBJETIVOS_COM_O_PO
     'comprometimento': '22'  # VAI_DEDICAR_1H_POR_DIA
