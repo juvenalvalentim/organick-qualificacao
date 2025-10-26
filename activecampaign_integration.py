@@ -266,30 +266,56 @@ def atualizar_contato_ac(contact_id, pontuacao, classificacao):
         }
     }
     
+    tag_id = None
     try:
-        response = requests.post(url_tags, headers=headers, json=data_create_tag)
-        # Ignora se já existe (409)
-        if response.status_code not in [200, 201, 409, 422]:
-            logger.warning(f"⚠️ Aviso ao criar tag: {response.status_code}")
+        response_tag = requests.post(url_tags, headers=headers, json=data_create_tag)
+        # Ignora se já existe (409, 422)
+        if response_tag.status_code in [200, 201]:
+            tag_data = response_tag.json()
+            tag_id = tag_data.get('tag', {}).get('id')
+            logger.info(f"✅ Tag criada com ID: {tag_id}")
+        elif response_tag.status_code in [409, 422]:
+            logger.info(f"⚠️ Tag já existe, buscando ID...")
+            # Buscar a tag existente
+            response_search = requests.get(f"{url_tags}?search={classificacao['tag']}", headers=headers)
+            if response_search.status_code == 200:
+                tags_data = response_search.json()
+                if tags_data.get('tags'):
+                    tag_id = tags_data['tags'][0].get('id')
+                    logger.info(f"✅ Tag encontrada com ID: {tag_id}")
     except Exception as e:
-        logger.warning(f"⚠️ Aviso ao criar tag: {e}")
+        logger.warning(f"⚠️ Erro ao criar/buscar tag: {e}")
     
     # Agora adicionar a tag ao contato
     url_contact_tag = f"{AC_URL}/api/3/contactTags"
-    data_tag = {
-        "contactTag": {
-            "contact": str(contact_id),
-            "tag": classificacao['tag']
+    
+    # Tentar com o ID da tag se conseguimos
+    if tag_id:
+        data_tag = {
+            "contactTag": {
+                "contact": str(contact_id),
+                "tag": str(tag_id)
+            }
         }
-    }
+    else:
+        # Tentar com o nome da tag
+        data_tag = {
+            "contactTag": {
+                "contact": str(contact_id),
+                "tag": classificacao['tag']
+            }
+        }
     
     try:
-        response = requests.post(url_contact_tag, headers=headers, json=data_tag)
-        response.raise_for_status()
-        logger.info(f"✅ Tag adicionada: {classificacao['tag']}")
+        response_add = requests.post(url_contact_tag, headers=headers, json=data_tag)
+        if response_add.status_code in [200, 201]:
+            logger.info(f"✅ Tag '{classificacao['tag']}' adicionada ao contato!")
+        elif response_add.status_code == 422:
+            logger.warning(f"⚠️ Tag já estava no contato")
+        else:
+            logger.error(f"❌ Erro {response_add.status_code}: {response_add.text}")
     except Exception as e:
-        response_text = response.text if 'response' in locals() and hasattr(response, 'text') else 'N/A'
-        logger.error(f"❌ Erro ao adicionar tag: {e} - Response: {response_text}")
+        logger.error(f"❌ Erro ao adicionar tag ao contato: {e}")
 
 
 @app.route('/webhook/activecampaign', methods=['POST'])
@@ -355,6 +381,48 @@ def webhook_activecampaign():
         import traceback
         logger.error(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/debug-contact/<contact_id>', methods=['GET'])
+def debug_contact(contact_id):
+    """Endpoint para ver TODOS os campos do contato"""
+    try:
+        contato_dados = buscar_contato_ac(contact_id)
+        
+        if not contato_dados:
+            return jsonify({'error': 'Contato não encontrado'}), 404
+        
+        # Pegar info básica do contato
+        contact_info = contato_dados.get('contact', {})
+        
+        # Pegar todos os fieldValues
+        field_values = contato_dados.get('fieldValues', [])
+        
+        # Formatar de forma legível
+        campos_formatados = []
+        for field in field_values:
+            if isinstance(field, dict):
+                campos_formatados.append({
+                    'field_id': field.get('field'),
+                    'value': field.get('value'),
+                    'id': field.get('id')
+                })
+        
+        return jsonify({
+            'contact_id': contact_id,
+            'email': contact_info.get('email'),
+            'firstName': contact_info.get('firstName'),
+            'lastName': contact_info.get('lastName'),
+            'total_campos': len(campos_formatados),
+            'campos': campos_formatados
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 
 @app.route('/health', methods=['GET'])
