@@ -382,24 +382,49 @@ def webhook_activecampaign():
         if not contato_dados:
             return jsonify({'error': 'Não foi possível buscar dados do contato'}), 500
         
-        # Extrair campos personalizados com validação
+        # Extrair campos personalizados - CORREÇÃO: buscar da RAIZ
         campos_contato = {}
         
         if isinstance(contato_dados, dict):
-            contact_data = contato_dados.get('contact', contato_dados)
+            # fieldValues está na RAIZ da resposta, não dentro de 'contact'!
+            field_values = contato_dados.get('fieldValues', [])
+            logger.info(f"📊 Primeira tentativa: {len(field_values)} fieldValues encontrados")
             
-            if isinstance(contact_data, dict):
-                field_values = contact_data.get('fieldValues', [])
+            if isinstance(field_values, list):
+                for field in field_values:
+                    if isinstance(field, dict):
+                        field_id = field.get('field')
+                        field_value = field.get('value')
+                        if field_id and field_value:
+                            campos_contato[field_id] = field_value
+        
+        logger.info(f"✅ Total de campos extraídos: {len(campos_contato)}")
+        
+        # RETRY: Se encontrou poucos campos, aguardar e tentar novamente
+        if len(campos_contato) < 5:
+            logger.info("⚠️ Poucos campos encontrados, aguardando 15 segundos e tentando novamente...")
+            import time
+            time.sleep(15)
+            
+            # Segunda tentativa
+            contato_dados = buscar_contato_ac(contact_id)
+            campos_contato = {}
+            
+            if isinstance(contato_dados, dict):
+                field_values = contato_dados.get('fieldValues', [])
+                logger.info(f"📊 Segunda tentativa: {len(field_values)} fieldValues encontrados")
                 
                 if isinstance(field_values, list):
                     for field in field_values:
                         if isinstance(field, dict):
                             field_id = field.get('field')
                             field_value = field.get('value')
-                            if field_id:
+                            if field_id and field_value:
                                 campos_contato[field_id] = field_value
+            
+            logger.info(f"✅ Total após retry: {len(campos_contato)} campos")
         
-        logger.info(f"Campos extraídos: {campos_contato}")
+        logger.info(f"📝 Campos para pontuação: {list(campos_contato.keys())}")
         
         # Calcular pontuação
         pontuacao_total, detalhes = calcular_pontuacao(campos_contato)
