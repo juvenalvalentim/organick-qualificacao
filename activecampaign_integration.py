@@ -321,14 +321,60 @@ def atualizar_contato_ac(contact_id, pontuacao, classificacao):
 def webhook_activecampaign():
     """Endpoint que recebe o webhook do ActiveCampaign"""
     try:
-        data = request.json
-        logger.info(f"Webhook recebido: {data}")
+        # Tentar múltiplos formatos de dados
+        data = None
+        
+        # Formato 1: JSON direto
+        if request.is_json:
+            data = request.json
+            logger.info("✅ Dados recebidos como JSON")
+        
+        # Formato 2: Form data
+        elif request.form:
+            data = request.form.to_dict()
+            logger.info("✅ Dados recebidos como FORM")
+            # ActiveCampaign pode enviar como form com campo 'contact[id]'
+            if 'contact[id]' in data:
+                contact_id = data.get('contact[id]')
+                data = {'contact': {'id': contact_id}}
+        
+        # Formato 3: Raw data
+        elif request.data:
+            import json
+            try:
+                data = json.loads(request.data.decode('utf-8'))
+                logger.info("✅ Dados recebidos como RAW e parseados para JSON")
+            except:
+                logger.error("❌ Não conseguiu parsear dados RAW")
+                return jsonify({'error': 'Formato de dados não suportado'}), 400
+        
+        if not data:
+            logger.error("❌ Nenhum dado recebido")
+            return jsonify({'error': 'Nenhum dado recebido'}), 400
+        
+        logger.info(f"📦 Webhook recebido: {data}")
+        logger.info(f"📋 Content-Type: {request.content_type}")
         
         # Extrair ID do contato
-        contact_id = data.get('contact', {}).get('id')
+        contact_id = None
+        
+        # Tentar diferentes estruturas
+        if isinstance(data, dict):
+            if 'contact' in data:
+                if isinstance(data['contact'], dict):
+                    contact_id = data['contact'].get('id')
+                else:
+                    contact_id = data['contact']
+            elif 'contact[id]' in data:
+                contact_id = data['contact[id]']
+            elif 'id' in data:
+                contact_id = data['id']
+        
+        logger.info(f"🆔 Contact ID extraído: {contact_id}")
         
         if not contact_id:
-            return jsonify({'error': 'Contact ID não encontrado'}), 400
+            logger.error("❌ Contact ID não encontrado nos dados")
+            return jsonify({'error': 'Contact ID não encontrado', 'data_received': data}), 400
         
         # Buscar dados completos do contato
         contato_dados = buscar_contato_ac(contact_id)
