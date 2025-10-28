@@ -35,95 +35,97 @@ FIELD_ID_MAPPING = {
     'comprometimento': '22'  # VAI_DEDICAR_1H_POR_DIA
 }
 
-# Sistema de pontuação (idêntico ao sistema HTML)
+# Sistema de pontuação com foco em capacidade financeira
+# Máximo: 100 pontos | Usa pontos NEGATIVOS para penalizar falta de capacidade
 PONTUACAO = {
     'cartao': {
-        'Sim, com meu próprio cartão.': 10,
+        'Sim, com meu próprio cartão.': 15,
         'Sim, com o cartão dos meus pais.': 5,
-        'Sim, com um cartão de terceiro (de amigos, parentes, etc).': 3,
-        'Não tenho cartão de crédito.': 0
+        'Sim, com um cartão de terceiro (de amigos, parentes, etc).': 2,
+        'Não tenho cartão de crédito.': -10  # NEGATIVO - penaliza muito
     },
     'rendaMkt': {
+        '+ de R$8.000,00': 20,
+        'Entre R$5.000,00 e R$8.000,00': 16,
+        'Entre R$ 3.000,00 e R$ 5.000,00': 12,
+        'Entre R$ 2.000,00 e R$ 3.000,00': 8,
+        'Entre R$ 1.000,00 e R$ 2.000,00': 4,
+        'Entre R$ 100,00 e R$ 1.000,00': 1,
+        'Ainda não tenho renda': -15  # NEGATIVO - penaliza muito
+    },
+    'rendaExtra': {
         '+ de R$8.000,00': 12,
         'Entre R$5.000,00 e R$8.000,00': 10,
         'Entre R$ 3.000,00 e R$ 5.000,00': 8,
         'Entre R$ 2.000,00 e R$ 3.000,00': 6,
-        'Entre R$ 1.000,00 e R$ 2.000,00': 4,
-        'Entre R$ 100,00 e R$ 1.000,00': 2,
-        'Ainda não tenho renda': 0
-    },
-    'rendaExtra': {
-        '+ de R$8.000,00': 8,
-        'Entre R$5.000,00 e R$8.000,00': 7,
-        'Entre R$ 3.000,00 e R$ 5.000,00': 6,
-        'Entre R$ 2.000,00 e R$ 3.000,00': 5,
         'Entre R$ 1.000,00 e R$ 1.000,00': 3,
-        'Não tenho.': 8
+        'Não tenho.': 10  # POSITIVO - quem foca só no digital é bom
     },
     'tempoArea': {
-        'Mais de 5 anos': 10,
-        '3 a 5 anos': 9,
-        '2 a 3 anos': 8,
-        '1 a 2 anos': 6,
-        'Menos de 1 ano': 3,
-        'Nenhum desses': 1,
-        'Estou estudando': 1
+        'Mais de 5 anos': 8,
+        '3 a 5 anos': 7,
+        '2 a 3 anos': 6,
+        '1 a 2 anos': 4,
+        'Menos de 1 ano': 2,
+        'Nenhum desses': -5,  # NEGATIVO - sem experiência
+        'Estou estudando': -5  # NEGATIVO - ainda estudando
     },
     'clientes': {
-        '5': 10,
-        '4': 9,
-        '6': 9,
-        '3': 8,
+        '5': 8,
+        '4': 7,
+        '6': 7,
+        '3': 6,
         '7': 8,
         '+8': 10,
-        '2': 6,
-        '1': 5,
-        '0': 2
+        '2': 4,
+        '1': 2,
+        '0': -8  # NEGATIVO - sem clientes
     },
     'status': {
         'Dono de uma agência/empresa': 5,
         'Freelancer': 5,
         'Funcionário em agência': 3,
-        'Outro': 2
+        'Outro': 0
     },
     'comprouCurso': {
-        'Sim': 8,
-        'Não': 2
+        'Sim': 4,
+        'Não': 0
     },
     'investimento': {
-        'Mais de R$ 5000 reais': 12,
-        'Entre R$ 3.001 e R$ 5.000': 10,
-        'Entre R$ 1.000 e R$ 3.000': 6,
-        'Menos de 1 mil reais': 3
+        'Mais de R$ 5000 reais': 10,
+        'Entre R$ 3.001 e R$ 5.000': 7,
+        'Entre R$ 1.000 e R$ 3.000': 4,
+        'Menos de 1 mil reais': 1
     },
     'conheceNick': {
-        'Mais de 1 ano': 5,
-        '6 meses a 1 ano': 4,
-        '3 a 6 meses': 4,
-        '1 a 3 meses': 2,
-        'Menos de 1 mês': 1,
-        'Não o conheço': 0
+        'Mais de 1 ano': 3,
+        '6 meses a 1 ano': 2,
+        '3 a 6 meses': 2,
+        '1 a 3 meses': 1,
+        'Menos de 1 mês': 0,
+        'Não o conheço': -3  # NEGATIVO - não conhece
     },
     'objetivo': {
-        'Quero abrir minha própria agência de marketing do zero': 10,
-        'Já tenho uma agência, mas quero organizar e escalar': 10,
-        'Já faço freelas, mas quero organizar e escalar': 10,
-        'Trabalho para outra agência e quero criar meu próprio negócio': 9,
-        'Tenho um negócio (ex: loja, estética, consultório) e quero aplicar conteúdo nele': 4,
-        'Tenho um trabalho CLT em outra área, mas quero migrar pro digital': 7,
-        'Trabalho na área criativa, mas ainda estou entendendo qual caminho seguir': 5,
-        'Outro (vou explicar mais pra frente)': 3
+        'Quero abrir minha própria agência de marketing do zero': 7,
+        'Já tenho uma agência, mas quero organizar e escalar': 7,
+        'Já faço freelas, mas quero organizar e escalar': 7,
+        'Trabalho para outra agência e quero criar meu próprio negócio': 6,
+        'Tenho um negócio (ex: loja, estética, consultório) e quero aplicar conteúdo nele': 2,
+        'Tenho um trabalho CLT em outra área, mas quero migrar pro digital': 4,
+        'Trabalho na área criativa, mas ainda estou entendendo qual caminho seguir': 3,
+        'Outro (vou explicar mais pra frente)': 1
     },
     'comprometimento': {
-        'Sim! Tô com sangue nos olhos e totalmente comprometido.': 10,
-        'Sim, entendo que isso exige esforço e estou pronto pra isso.': 9,
-        'Sim, vai ser puxado, mas sei que é o que preciso agora.': 8,
-        'Tenho minhas dúvidas, mas acho que consigo me organizar.': 5,
-        'Ainda não tenho certeza se consigo manter esse ritmo.': 3,
-        'Provavelmente eu não conseguiria me dedicar com constância.': 0,
-        'Sendo honesto(a), não estou disposto a assumir esse nível de compromisso.': 0,
-        'Não sou comprometido o suficiente pra seguir algo assim.': 0
+        'Sim! Tô com sangue nos olhos e totalmente comprometido.': 7,
+        'Sim, entendo que isso exige esforço e estou pronto pra isso.': 6,
+        'Sim, vai ser puxado, mas sei que é o que preciso agora.': 5,
+        'Tenho minhas dúvidas, mas acho que consigo me organizar.': 2,
+        'Ainda não tenho certeza se consigo manter esse ritmo.': 0,
+        'Provavelmente eu não conseguiria me dedicar com constância.': -5,  # NEGATIVO
+        'Sendo honesto(a), não estou disposto a assumir esse nível de compromisso.': -8,  # NEGATIVO
+        'Não sou comprometido o suficiente pra seguir algo assim.': -10  # NEGATIVO - muito ruim
     }
+}
 }
 
 
@@ -167,18 +169,20 @@ def calcular_pontuacao(campos_contato):
 
 
 def obter_classificacao(pontuacao):
-    """Retorna a classificação baseada na pontuação"""
-    if pontuacao >= 80:
+    """Retorna a classificação baseada na pontuação
+    Escala: -50 a 100 pontos (usa pontos negativos)
+    """
+    if pontuacao >= 70:
         return {
             'tag': 'PO - SUPER QUALIFICADO',
             'status': 'SUPER QUALIFICADO'
         }
-    elif pontuacao >= 60:
+    elif pontuacao >= 50:
         return {
             'tag': 'PO - QUALIFICADO',
             'status': 'QUALIFICADO'
         }
-    elif pontuacao >= 40:
+    elif pontuacao >= 25:
         return {
             'tag': 'PO - PRÉ-QUALIFICADO',
             'status': 'PRÉ-QUALIFICADO'
@@ -375,6 +379,67 @@ def webhook_activecampaign():
         if not contact_id:
             logger.error("❌ Contact ID não encontrado nos dados")
             return jsonify({'error': 'Contact ID não encontrado', 'data_received': data}), 400
+        
+        # ESTRATÉGIA INTELIGENTE: Múltiplas tentativas rápidas
+        # Total: ~25 segundos (não dá timeout no ActiveCampaign)
+        max_tentativas = 5
+        intervalo = 5  # segundos entre tentativas
+        campos_contato = {}
+        
+        logger.info(f"🔄 Iniciando processo de busca de campos com retry inteligente...")
+        
+        for tentativa in range(1, max_tentativas + 1):
+            logger.info(f"📡 Tentativa {tentativa}/{max_tentativas}...")
+            
+            # Buscar dados completos do contato
+            contato_dados = buscar_contato_ac(contact_id)
+            
+            if not contato_dados:
+                logger.warning(f"⚠️ Tentativa {tentativa}: Não foi possível buscar dados")
+                if tentativa < max_tentativas:
+                    import time
+                    time.sleep(intervalo)
+                continue
+            
+            # Extrair campos personalizados - buscar da RAIZ
+            campos_contato = {}
+            
+            if isinstance(contato_dados, dict):
+                field_values = contato_dados.get('fieldValues', [])
+                
+                if isinstance(field_values, list):
+                    for field in field_values:
+                        if isinstance(field, dict):
+                            field_id = field.get('field')
+                            field_value = field.get('value')
+                            if field_id and field_value:
+                                campos_contato[field_id] = field_value
+            
+            campos_relevantes = sum(1 for fid in ['11', '12', '13', '15', '16', '17', '22', '48', '49', '50'] if fid in campos_contato)
+            
+            logger.info(f"✅ Tentativa {tentativa}: {len(campos_contato)} campos totais, {campos_relevantes} campos relevantes")
+            
+            # Se encontrou pelo menos 5 campos relevantes, prosseguir
+            if campos_relevantes >= 5:
+                logger.info(f"🎯 Campos suficientes encontrados na tentativa {tentativa}!")
+                break
+            
+            # Se não é a última tentativa, aguardar
+            if tentativa < max_tentativas:
+                logger.info(f"⏳ Aguardando {intervalo}s antes da próxima tentativa...")
+                import time
+                time.sleep(intervalo)
+        
+        # Verificação final
+        if len(campos_contato) < 3:
+            logger.error(f"❌ Após {max_tentativas} tentativas, apenas {len(campos_contato)} campos encontrados")
+            return jsonify({
+                'error': 'Campos insuficientes após múltiplas tentativas',
+                'tentativas': max_tentativas,
+                'campos_encontrados': len(campos_contato)
+            }), 500
+        
+        logger.info(f"📝 Campos finais para pontuação: {list(campos_contato.keys())}")
         
         # Buscar dados completos do contato
         contato_dados = buscar_contato_ac(contact_id)
