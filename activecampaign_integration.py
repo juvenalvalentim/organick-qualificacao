@@ -126,7 +126,7 @@ PONTUACAO = {
         'Não sou comprometido o suficiente pra seguir algo assim.': -10  # NEGATIVO - muito ruim
     }
 }
-}
+
 
 
 def encontrar_pontos(pergunta_id, resposta):
